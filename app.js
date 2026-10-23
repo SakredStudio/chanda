@@ -1,4 +1,4 @@
-// Chanda Collector — P4: Share/Nudge Screen, Next Pending Flow, UPI QR, Share-Summary Text
+// Chanda Collector — P5: PWA Service Worker, Install Prompt, Settings (Language, UPI ID, Backup/Restore, About, Privacy Note)
 import {
   SUPPORTED_LANGS,
   registerTranslations,
@@ -9,10 +9,13 @@ import {
   loadState,
   updateSettings,
   addCollection,
+  deleteCollection,
   canCreateCollection,
   setPersonPaymentStatus,
   undoLastAction,
-  clearUndo
+  clearUndo,
+  exportBackupJson,
+  importBackupJson
 } from './lib/store.js';
 import {
   inr,
@@ -75,7 +78,9 @@ export const appContext = {
   undoToast: null,
   shareQueueIndex: 0,
   nudgedPersonIds: new Set(),
-  copiedTarget: '', // 'vpa' | 'summary'
+  copiedTarget: '',
+  settingsNotice: '',
+  deferredInstallPrompt: null,
   ready: false
 };
 
@@ -1051,6 +1056,113 @@ function renderShareScreen(collectionId) {
   `;
 }
 
+function renderSettingsScreen() {
+  const lang = getLang();
+  const s = appContext.state.settings;
+
+  return `
+    <main class="screen" data-screen="settings">
+      <header class="header-row">
+        <div class="header-left">
+          <button type="button" class="back-btn" data-action="go-home" aria-label="Back">←</button>
+          <h1 class="screen-title">${t(lang, 'settings')}</h1>
+        </div>
+        <div class="header-right">
+          ${renderLanguageToggle()}
+        </div>
+      </header>
+
+      ${
+        appContext.deferredInstallPrompt
+          ? `
+        <button type="button" class="btn-primary" data-action="trigger-install-pwa">
+          <span>📲</span>
+          <span>${t(lang, 'installApp')}</span>
+        </button>
+      `
+          : ''
+      }
+
+      ${
+        appContext.settingsNotice
+          ? `
+        <div style="background:var(--green-tint); border:1.5px solid var(--green); color:var(--green-deep); padding:10px 14px; border-radius:14px; font-weight:700; font-size:15px;">
+          ${escapeHtml(appContext.settingsNotice)}
+        </div>
+      `
+          : ''
+      }
+
+      <section style="background:var(--card-white); border:1px solid var(--card-border); border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+        <div style="font-size:16px; font-weight:800; color:var(--ink);">💳 ${t(lang, 'upiId')}</div>
+
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="settings-payee-input" style="font-size:13px; font-weight:700; color:var(--ink-soft);">
+            ${t(lang, 'payeeNameLabel')}
+          </label>
+          <input
+            id="settings-payee-input"
+            type="text"
+            class="text-input"
+            value="${escapeHtml(s.payeeName || '')}"
+            placeholder="e.g. Rahul Sharma"
+          />
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="settings-vpa-input" style="font-size:13px; font-weight:700; color:var(--ink-soft);">
+            ${t(lang, 'vpaLabel')}
+          </label>
+          <input
+            id="settings-vpa-input"
+            type="text"
+            class="text-input"
+            value="${escapeHtml(s.vpa || '')}"
+            placeholder="rahul@okaxis"
+          />
+        </div>
+
+        <button type="button" class="btn-primary" style="min-height:54px; font-size:18px;" data-action="save-upi-settings">
+          <span>✓</span>
+          <span>${t(lang, 'save')}</span>
+        </button>
+      </section>
+
+      <section style="background:var(--card-white); border:1px solid var(--card-border); border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+        <button type="button" class="btn-secondary" data-action="export-backup">
+          <span>⬇️</span>
+          <span>${t(lang, 'exportBackup')}</span>
+        </button>
+
+        <button type="button" class="btn-secondary" data-action="trigger-import-backup">
+          <span>⬆️</span>
+          <span>${t(lang, 'importBackup')}</span>
+        </button>
+        <input
+          id="backup-file-input"
+          type="file"
+          accept=".json,application/json"
+          style="display:none;"
+        />
+
+        <button type="button" class="btn-secondary" data-action="export-csv">
+          <span>📊</span>
+          <span>${t(lang, 'exportCsv')} ⭐</span>
+        </button>
+      </section>
+
+      <section style="background:var(--card-white); border:1px solid var(--card-border); border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:16px; font-weight:800; color:var(--ink);">🔒 ${t(lang, 'aboutTitle')} · v1.0</div>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); font-weight:600; line-height:1.45;">
+          ${t(lang, 'privacyNote')}
+        </p>
+      </section>
+
+      ${renderProModal(lang)}
+    </main>
+  `;
+}
+
 export function renderApp() {
   const root = document.getElementById('app');
   if (!root) return;
@@ -1064,6 +1176,8 @@ export function renderApp() {
     root.innerHTML = renderDetailScreen(route.params.id);
   } else if (route.name === 'share') {
     root.innerHTML = renderShareScreen(route.params.id);
+  } else if (route.name === 'settings') {
+    root.innerHTML = renderSettingsScreen();
   } else {
     root.innerHTML = renderHomeScreen();
   }
@@ -1136,6 +1250,18 @@ async function copyText(text, targetKey) {
   }, 2000);
 }
 
+function downloadBlob(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function bindEvents(root) {
   root.querySelectorAll('[data-action="set-lang"]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1161,6 +1287,7 @@ function bindEvents(root) {
 
   root.querySelectorAll('[data-action="go-home"]').forEach((btn) => {
     btn.addEventListener('click', () => {
+      appContext.settingsNotice = '';
       navigate('#home');
     });
   });
@@ -1201,6 +1328,7 @@ function bindEvents(root) {
 
   root.querySelectorAll('[data-action="open-settings"]').forEach((btn) => {
     btn.addEventListener('click', () => {
+      appContext.settingsNotice = '';
       navigate('#settings');
     });
   });
@@ -1560,6 +1688,92 @@ function bindEvents(root) {
       window.open(waLink('', summary), '_blank', 'noopener,noreferrer');
     });
   });
+
+  // Settings screen handlers
+  root.querySelectorAll('[data-action="save-upi-settings"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lang = getLang();
+      const payeeEl = root.querySelector('#settings-payee-input');
+      const vpaEl = root.querySelector('#settings-vpa-input');
+      const payeeName = payeeEl ? payeeEl.value.trim() : '';
+      const vpa = vpaEl ? vpaEl.value.trim() : '';
+
+      if (vpa && !isValidVpa(vpa)) {
+        appContext.settingsNotice = t(lang, 'vpaInvalid');
+        renderApp();
+        return;
+      }
+      appContext.state = updateSettings(appContext.state, { payeeName, vpa });
+      appContext.settingsNotice = `${t(lang, 'save')} ✓`;
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="export-backup"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const json = exportBackupJson(appContext.state);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadBlob(json, `chanda-backup-${dateStr}.json`, 'application/json');
+    });
+  });
+
+  root.querySelectorAll('[data-action="trigger-import-backup"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const fileInput = root.querySelector('#backup-file-input');
+      if (fileInput) fileInput.click();
+    });
+  });
+
+  const backupFileInput = root.querySelector('#backup-file-input');
+  if (backupFileInput) {
+    backupFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const lang = getLang();
+      try {
+        const text = await file.text();
+        if (window.confirm(t(lang, 'importConfirm'))) {
+          appContext.state = importBackupJson(text);
+          appContext.settingsNotice = t(lang, 'importSuccess');
+          renderApp();
+        }
+      } catch {
+        appContext.settingsNotice = t(lang, 'importError');
+        renderApp();
+      }
+    });
+  }
+
+  root.querySelectorAll('[data-action="export-csv"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!appContext.state.settings.isPro) {
+        appContext.proSheetOpen = true;
+        renderApp();
+        return;
+      }
+      const rows = ['Collection,Person,Phone,Status,Method,PaidAt'];
+      for (const col of appContext.state.collections) {
+        for (const p of col.people) {
+          rows.push(
+            [col.title, p.name, p.phone || '', p.status, p.method || '', p.paidAt || '']
+              .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+              .join(',')
+          );
+        }
+      }
+      downloadBlob(rows.join('\n'), 'chanda-export.csv', 'text/csv');
+    });
+  });
+
+  root.querySelectorAll('[data-action="trigger-install-pwa"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!appContext.deferredInstallPrompt) return;
+      appContext.deferredInstallPrompt.prompt();
+      await appContext.deferredInstallPrompt.userChoice;
+      appContext.deferredInstallPrompt = null;
+      renderApp();
+    });
+  });
 }
 
 async function boot() {
@@ -1567,11 +1781,13 @@ async function boot() {
   appContext.state = loadState();
   appContext.route = parseHash(window.location.hash);
   appContext.ready = true;
+
   window.addEventListener('hashchange', () => {
     appContext.route = parseHash(window.location.hash);
     appContext.activeSheetPersonId = null;
     renderApp();
   });
+
   window.addEventListener('keydown', (e) => {
     if (appContext.route.name === 'create' && appContext.wizard.step === 1) {
       if (/^\d$/.test(e.key)) {
@@ -1581,6 +1797,17 @@ async function boot() {
       }
     }
   });
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    appContext.deferredInstallPrompt = e;
+    renderApp();
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
   renderApp();
 }
 
