@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+  <meta name="theme-color" content="#1FA85B">
+  <meta name="description" content="Chanda Collector — offline-first group collection tracker. EN / हिंदी / Hinglish.">
+  <title>Chanda Collector</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./fonts/mukta.css">
+  <style>
+    :root {
+      /* Design Tokens from README */
+      --green: #1FA85B;
+      --green-deep: #178A4A;
+      --green-tint: #E6F5EC;
+      --green-confirmed-bg: #EAF7EF;
+      --green-confirmed-border: #9FDCB7;
+      --saffron: #E8A33D;
+      --saffron-tint: #FBF0DC;
+      --pending-row-bg: #FFFCF6;
+      --pending-row-border: #F1E2C6;
+      --pending-text: #B07A22;
+      --wa-green: #25D366;
+      --cream: #FAF8F4;
+      --card-white: #FFFFFF;
+      --ink: #211B14;
+      --ink-alt: #2A2118;
+      --ink-soft: #6B6157;
+      --ink-muted: #857A6E;
+      --card-border: #EFE6D8;
+      --card-border-alt: #EAE1D4;
+      --btn-border: #E5DCCE;
+      --pad-border: #E9E0D2;
+      --ring-open: #D9CEBC;
+      --dot-inactive: #DACFBE;
+      --toggle-track: #F1EADF;
+      --progress-track: #EFE7D9;
+      --ring-track: #F0E7D8;
+      --wa-bubble: #DCF8C6;
+      --scrim: rgba(33, 27, 20, 0.42);
+
+      /* Shape & Spacing */
+      --radius-card: 20px;
+      --radius-btn: 18px;
+      --radius-row: 16px;
+      --radius-pill: 999px;
+      --shadow-card: 0 6px 16px -12px rgba(40, 30, 15, 0.35);
+      --shadow-selected: 0 8px 18px -10px rgba(31, 168, 91, 0.5);
+      --shadow-primary: 0 12px 24px -10px rgba(31, 168, 91, 0.6);
+      --shadow-wa: 0 12px 24px -10px rgba(37, 211, 102, 0.6);
+      --font-main: 'Mukta', 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100dvh;
+      background: var(--cream);
+      color: var(--ink-alt);
+      font-family: var(--font-main);
+      font-size: 16px;
+      line-height: 1.35;
+      overflow-x: hidden;
+    }
+
+    button, input, textarea, select {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.4); opacity: 0; }
+      60% { transform: scale(1.12); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 440px;
+      min-height: 100dvh;
+      margin: 0 auto;
+      background: var(--cream);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 20px 24px;
+      gap: 16px;
+      width: 100%;
+    }
+
+    /* Header row */
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 48px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .screen-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--ink);
+      margin: 0;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .back-btn {
+      width: 46px;
+      height: 46px;
+      min-width: 46px;
+      border-radius: 14px;
+      background: var(--card-white);
+      border: 1px solid var(--btn-border);
+      display: grid;
+      place-items: center;
+      font-size: 23px;
+      font-weight: 800;
+      color: var(--ink-alt);
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 13px;
+      background: var(--card-white);
+      border: 1px solid var(--btn-border);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Language Toggle (A / अ / Aa) */
+    .lang-toggle {
+      display: inline-flex;
+      background: var(--toggle-track);
+      border-radius: var(--radius-pill);
+      padding: 4px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .lang-seg {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0 8px;
+      border-radius: var(--radius-pill);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--ink-soft);
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .lang-seg.active {
+      background: var(--green);
+      color: #FFFFFF;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      min-height: 62px;
+      border-radius: var(--radius-btn);
+      background: var(--green);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 800;
+      box-shadow: var(--shadow-primary);
+      padding: 12px 18px;
+      text-align: center;
+    }
+
+    .btn-primary:active {
+      background: var(--green-deep);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-wa {
+      width: 100%;
+      min-height: 62px;
+      border-radius: var(--radius-btn);
+      background: var(--wa-green);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 19px;
+      font-weight: 800;
+      box-shadow: var(--shadow-wa);
+      padding: 12px 18px;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      min-height: 58px;
+      border-radius: 16px;
+      background: var(--card-white);
+      color: var(--ink-alt);
+      border: 2px solid var(--btn-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      padding: 10px 16px;
+    }
+
+    .bottom-bar {
+      margin-top: auto;
+      padding-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Progress bar */
+    .progress-track {
+      height: 16px;
+      background: var(--progress-track);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: var(--radius-pill);
+      transition: width 0.45s ease-out;
+    }
+
+    /* Status indicators */
+    .status-paid {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #FFFFFF;
+      display: grid;
+      place-items: center;
+      font-size: 23px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .status-paid.pop {
+      animation: pop 0.4s ease-out;
+    }
+
+    .status-pending {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 50%;
+      background: var(--saffron-tint);
+      border: 3px solid var(--saffron);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .wa-circle {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      border-radius: 50%;
+      background: var(--wa-green);
+      color: #FFFFFF;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      text-decoration: none;
+    }
+
+    @media (max-width: 380px) {
+      .screen {
+        padding: 14px 14px 20px;
+      }
+      .screen-title {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app-shell"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
