@@ -1,4 +1,4 @@
-// Chanda Collector — P1: Language Pick Screen + Home Collections List & Sample Seed
+// Chanda Collector — P2: Create Collection 3-Step Wizard (Type -> Amount Numpad -> Contacts/Manual People)
 import {
   SUPPORTED_LANGS,
   registerTranslations,
@@ -11,13 +11,53 @@ import {
   addCollection,
   canCreateCollection
 } from './lib/store.js';
-import { inr, typeEmoji } from './lib/format.js';
+import {
+  inr,
+  rupeesToPaise,
+  avatarColor,
+  avatarInitial,
+  typeEmoji
+} from './lib/format.js';
 import { computeTally } from './lib/tally.js';
+import { parsePhone } from './lib/phone.js';
+
+const QUICK_SAMPLE_CONTACTS = [
+  { name: 'Priya Sharma', phone: '9876543210' },
+  { name: 'Amit Kumar', phone: '9876543211' },
+  { name: 'Sunita Rao', phone: '9876543212' },
+  { name: 'Vikram Singh', phone: '9876543213' },
+  { name: 'Neha Gupta', phone: '9876543214' },
+  { name: 'Rajesh Verma', phone: '9876543215' },
+  { name: 'Kavita Joshi', phone: '9876543216' },
+  { name: 'Suresh Nair', phone: '9876543217' },
+  { name: 'Pooja Patel', phone: '9876543218' },
+  { name: 'Deepak Mehta', phone: '9876543219' },
+  { name: 'AnjaliDesai', phone: '9876543220' },
+  { name: 'Rohan Malhotra', phone: '9876543221' }
+];
+
+export function createDefaultDraft(lang = 'hinglish') {
+  return {
+    step: 0, // 0: type, 1: amount, 2: people
+    type: 'gift',
+    title: '',
+    titleCustomized: false,
+    amountMode: 'perPerson', // 'perPerson' | 'total'
+    amountStr: '500',
+    people: [],
+    deadline: '',
+    manualMode: true,
+    draftName: '',
+    draftPhone: '',
+    contactMessage: ''
+  };
+}
 
 export const appContext = {
   state: loadState(),
   route: { name: 'home', params: {} },
   proSheetOpen: false,
+  wizard: createDefaultDraft(),
   ready: false
 };
 
@@ -50,6 +90,9 @@ export function setLang(lang, markPicked = true) {
     lang: norm,
     hasPickedLang: markPicked ? true : appContext.state.settings.hasPickedLang
   });
+  if (!appContext.wizard.titleCustomized) {
+    appContext.wizard.title = t(norm, `preset_${appContext.wizard.type}`);
+  }
   document.documentElement.lang = norm === 'hi' ? 'hi' : 'en';
   renderApp();
 }
@@ -110,7 +153,7 @@ export function seedSampleCollections() {
       type: 'gift',
       title: t(lang, 'preset_gift'),
       amountMode: 'perPerson',
-      amountPerPersonPaise: 100000, // ₹1,000 × 20 = ₹20,000 (14 paid = ₹14,000, 70%)
+      amountPerPersonPaise: 100000,
       deadline: '25 October',
       people: [
         { id: 'p1', name: 'Priya Sharma', phone: '919876543210', status: 'paid', method: 'cash' },
@@ -138,7 +181,7 @@ export function seedSampleCollections() {
       type: 'festival',
       title: t(lang, 'preset_festival'),
       amountMode: 'perPerson',
-      amountPerPersonPaise: 50000, // ₹500 × 24 = ₹12,000 (17 paid = ₹8,500, 71%)
+      amountPerPersonPaise: 50000,
       people: Array.from({ length: 24 }, (_, i) => ({
         id: `d_${i + 1}`,
         name: `Resident ${i + 1}`,
@@ -152,7 +195,7 @@ export function seedSampleCollections() {
       type: 'trip',
       title: t(lang, 'preset_trip'),
       amountMode: 'perPerson',
-      amountPerPersonPaise: 200000, // ₹2,000 × 15 = ₹30,000 (11 paid = ₹22,000, 73%)
+      amountPerPersonPaise: 200000,
       people: Array.from({ length: 15 }, (_, i) => ({
         id: `g_${i + 1}`,
         name: `Friend ${i + 1}`,
@@ -329,6 +372,264 @@ function renderHomeScreen() {
   `;
 }
 
+function renderWizardDots(step) {
+  return `
+    <div class="wizard-dots" aria-label="Step ${step + 1} of 3">
+      <div class="wizard-dot ${step === 0 ? 'active' : ''}"></div>
+      <div class="wizard-dot ${step === 1 ? 'active' : ''}"></div>
+      <div class="wizard-dot ${step === 2 ? 'active' : ''}"></div>
+    </div>
+  `;
+}
+
+function renderCreateScreen() {
+  const lang = getLang();
+  const w = appContext.wizard;
+  if (!w.title) {
+    w.title = t(lang, `preset_${w.type}`);
+  }
+
+  const stepTitles = [t(lang, 'whatFor'), t(lang, 'amountEach'), t(lang, 'addPeople')];
+  const stepTitle = stepTitles[w.step] || t(lang, 'newCollection');
+
+  let bodyHtml = '';
+
+  if (w.step === 0) {
+    const types = ['gift', 'festival', 'trip', 'condolence', 'party', 'other'];
+    bodyHtml = `
+      <div class="type-grid" role="radiogroup" aria-label="${t(lang, 'whatFor')}">
+        ${types
+          .map((tp) => {
+            const selected = w.type === tp;
+            return `
+            <button
+              type="button"
+              class="type-tile ${selected ? 'selected' : ''}"
+              data-action="select-type"
+              data-type="${tp}"
+              role="radio"
+              aria-checked="${selected ? 'true' : 'false'}"
+            >
+              <div style="font-size:44px; line-height:1;">${typeEmoji(tp)}</div>
+              <div style="font-size:19px; font-weight:800;">${t(lang, `type_${tp}`)}</div>
+              <div style="font-size:13px; color:var(--ink-muted); font-weight:600;">${t(lang, `type_${tp}_sub`)}</div>
+            </button>
+          `;
+          })
+          .join('')}
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; margin-top:2px;">
+        <label for="collection-title-input" style="font-size:14px; font-weight:800; color:var(--ink-soft);">
+          ${t(lang, 'collectionTitleLabel')}
+        </label>
+        <input
+          id="collection-title-input"
+          type="text"
+          class="text-input"
+          value="${escapeHtml(w.title)}"
+          placeholder="${escapeHtml(t(lang, `preset_${w.type}`))}"
+        />
+      </div>
+
+      <div class="bottom-bar">
+        <button type="button" class="btn-primary" data-action="wizard-next-step1">
+          <span>${t(lang, 'next')}</span>
+          <span style="font-size:24px;">→</span>
+        </button>
+      </div>
+    `;
+  } else if (w.step === 1) {
+    const numericRupees = Number(w.amountStr || '0');
+    const formattedAmount = inr(Math.round(numericRupees * 100));
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', '⌫'];
+
+    bodyHtml = `
+      <div class="amount-display-card">
+        <div class="mode-pill-group" role="group" aria-label="Amount mode">
+          <button
+            type="button"
+            class="mode-pill ${w.amountMode === 'perPerson' ? 'active' : ''}"
+            data-action="set-amount-mode"
+            data-mode="perPerson"
+          >${t(lang, 'perPerson')}</button>
+          <button
+            type="button"
+            class="mode-pill ${w.amountMode === 'total' ? 'active' : ''}"
+            data-action="set-amount-mode"
+            data-mode="total"
+          >${t(lang, 'totalAmount')}</button>
+        </div>
+
+        <div style="font-size:15px; color:var(--ink-muted); font-weight:600;">
+          ${w.amountMode === 'perPerson' ? t(lang, 'perPerson') : t(lang, 'totalAmount')}
+        </div>
+
+        <div class="amount-big" data-testid="amount-display">
+          <span>${formattedAmount}</span>
+          <span class="amount-caret"></span>
+        </div>
+      </div>
+
+      <div class="numpad-grid" role="group" aria-label="Number pad">
+        ${keys
+          .map(
+            (k) => `
+          <button
+            type="button"
+            class="numpad-key ${k === '⌫' ? 'backspace' : ''}"
+            data-action="numpad-press"
+            data-key="${k}"
+          >${k}</button>
+        `
+          )
+          .join('')}
+      </div>
+
+      <div class="bottom-bar">
+        <button
+          type="button"
+          class="btn-primary"
+          data-action="wizard-next-step2"
+          ${numericRupees <= 0 ? 'disabled' : ''}
+        >
+          <span>${t(lang, 'next')}</span>
+          <span style="font-size:24px;">→</span>
+        </button>
+      </div>
+    `;
+  } else {
+    bodyHtml = `
+      <div class="people-source-row">
+        <button type="button" class="source-btn active" data-action="pick-contacts">
+          <div style="font-size:30px; line-height:1;">📇</div>
+          <div style="font-size:15px; font-weight:800;">${t(lang, 'fromContacts')}</div>
+        </button>
+        <button type="button" class="source-btn" data-action="focus-manual-person">
+          <div style="font-size:30px; line-height:1;">⌨️</div>
+          <div style="font-size:15px; font-weight:800;">${t(lang, 'typeName')}</div>
+        </button>
+      </div>
+
+      ${
+        w.contactMessage
+          ? `<div style="font-size:13px; color:var(--pending-text); background:var(--saffron-tint); padding:8px 12px; border-radius:12px; font-weight:600;">${escapeHtml(w.contactMessage)}</div>`
+          : ''
+      }
+
+      <form id="manual-person-form" style="background:var(--card-white); border:1px solid var(--card-border); border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; gap:8px;">
+          <input
+            id="person-name-input"
+            type="text"
+            class="text-input"
+            style="min-height:48px; flex:1;"
+            placeholder="${escapeHtml(t(lang, 'personNamePlaceholder'))}"
+            value="${escapeHtml(w.draftName)}"
+          />
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input
+            id="person-phone-input"
+            type="tel"
+            class="text-input"
+            style="min-height:48px; flex:1;"
+            placeholder="${escapeHtml(t(lang, 'personPhonePlaceholder'))}"
+            value="${escapeHtml(w.draftPhone)}"
+          />
+          <button
+            type="submit"
+            class="btn-primary"
+            style="width:auto; min-width:96px; min-height:48px; padding:0 16px; font-size:17px;"
+          >${t(lang, 'addPersonBtn')}</button>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; padding-top:2px;">
+          <button
+            type="button"
+            data-action="quick-add-12"
+            style="font-size:13px; font-weight:700; color:var(--green-deep); background:var(--green-tint); padding:6px 12px; border-radius:999px; min-height:36px;"
+          >+12 Sample Contacts</button>
+        </div>
+      </form>
+
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-size:16px; font-weight:800; color:#5B5249;">${t(lang, 'addedPeople')}</div>
+        <div style="font-size:15px; font-weight:800; color:var(--green); background:var(--green-tint); padding:4px 12px; border-radius:999px;">
+          ${w.people.length}
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; max-height:240px; overflow-y:auto;">
+        ${w.people
+          .map(
+            (p, idx) => `
+          <div class="draft-person-row">
+            <div class="avatar-circle" style="background:${p.avatarColor}; width:44px; height:44px; min-width:44px;">
+              ${escapeHtml(avatarInitial(p.name))}
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:17px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</div>
+              ${p.rawPhone ? `<div style="font-size:13px; color:var(--ink-muted);">${escapeHtml(p.rawPhone)}</div>` : ''}
+            </div>
+            <button
+              type="button"
+              class="remove-circle-btn"
+              data-action="remove-draft-person"
+              data-index="${idx}"
+              aria-label="Remove ${escapeHtml(p.name)}"
+            >✕</button>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+
+      <label class="deadline-card" for="deadline-input">
+        <span style="font-size:22px;">📅</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; color:#9A7B3A; font-weight:600;">${t(lang, 'deadlineOptional')}</div>
+          <input
+            id="deadline-input"
+            type="text"
+            value="${escapeHtml(w.deadline)}"
+            placeholder="e.g. 25 October / Diwali"
+            style="border:none; background:transparent; font-size:17px; font-weight:800; color:#A06A1E; width:100%; outline:none; padding:0;"
+          />
+        </div>
+      </label>
+
+      <div class="bottom-bar">
+        <button
+          type="button"
+          class="btn-primary"
+          data-action="wizard-finish"
+          ${w.people.length === 0 ? 'disabled' : ''}
+        >
+          <span style="font-size:24px;">✓</span>
+          <span>${t(lang, 'create')}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  return `
+    <main class="screen" data-screen="create">
+      <header class="header-row">
+        <div class="header-left">
+          <button type="button" class="back-btn" data-action="wizard-back" aria-label="Back">←</button>
+          <h1 class="screen-title">${stepTitle}</h1>
+        </div>
+        <div class="header-right">
+          ${renderLanguageToggle()}
+        </div>
+      </header>
+
+      ${renderWizardDots(w.step)}
+      ${bodyHtml}
+    </main>
+  `;
+}
+
 export function renderApp() {
   const root = document.getElementById('app');
   if (!root) return;
@@ -336,11 +637,46 @@ export function renderApp() {
 
   if (route.name === 'lang') {
     root.innerHTML = renderLangPickScreen();
+  } else if (route.name === 'create') {
+    root.innerHTML = renderCreateScreen();
   } else {
     root.innerHTML = renderHomeScreen();
   }
 
   bindEvents(root);
+}
+
+function handleNumpadInput(key) {
+  let cur = appContext.wizard.amountStr || '';
+  if (key === '⌫') {
+    cur = cur.slice(0, -1);
+  } else if (key === '00') {
+    if (cur && cur !== '0' && cur.length <= 5) {
+      cur += '00';
+    }
+  } else if (/^\d$/.test(key)) {
+    if (cur === '0') {
+      cur = key;
+    } else if (cur.length < 7) {
+      cur += key;
+    }
+  }
+  appContext.wizard.amountStr = cur || '0';
+  renderApp();
+}
+
+function addDraftPerson(name, phoneStr) {
+  const cleanName = String(name || '').trim();
+  if (!cleanName) return;
+  const { phone, rawPhone } = parsePhone(phoneStr || '');
+  appContext.wizard.people.push({
+    id: `dp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    name: cleanName,
+    phone,
+    rawPhone,
+    avatarColor: avatarColor(cleanName),
+    status: 'pending'
+  });
 }
 
 function bindEvents(root) {
@@ -386,6 +722,9 @@ function bindEvents(root) {
         renderApp();
         return;
       }
+      const lang = getLang();
+      appContext.wizard = createDefaultDraft(lang);
+      appContext.wizard.title = t(lang, `preset_${appContext.wizard.type}`);
       navigate('#create');
     });
   });
@@ -402,6 +741,188 @@ function bindEvents(root) {
       navigate('#settings');
     });
   });
+
+  // Create wizard handlers
+  root.querySelectorAll('[data-action="wizard-back"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (appContext.wizard.step > 0) {
+        appContext.wizard.step -= 1;
+        renderApp();
+      } else {
+        navigate('#home');
+      }
+    });
+  });
+
+  root.querySelectorAll('[data-action="select-type"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tp = btn.getAttribute('data-type');
+      const lang = getLang();
+      appContext.wizard.type = tp;
+      if (!appContext.wizard.titleCustomized) {
+        appContext.wizard.title = t(lang, `preset_${tp}`);
+      }
+      renderApp();
+    });
+  });
+
+  const titleInput = root.querySelector('#collection-title-input');
+  if (titleInput) {
+    titleInput.addEventListener('input', (e) => {
+      appContext.wizard.title = e.target.value;
+      appContext.wizard.titleCustomized = true;
+    });
+  }
+
+  root.querySelectorAll('[data-action="wizard-next-step1"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lang = getLang();
+      if (!appContext.wizard.title.trim()) {
+        appContext.wizard.title = t(lang, `preset_${appContext.wizard.type}`);
+      }
+      appContext.wizard.step = 1;
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="set-amount-mode"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      appContext.wizard.amountMode = btn.getAttribute('data-mode');
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="numpad-press"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      handleNumpadInput(btn.getAttribute('data-key'));
+    });
+  });
+
+  root.querySelectorAll('[data-action="wizard-next-step2"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (Number(appContext.wizard.amountStr || '0') > 0) {
+        appContext.wizard.step = 2;
+        renderApp();
+      }
+    });
+  });
+
+  root.querySelectorAll('[data-action="pick-contacts"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const lang = getLang();
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.contacts &&
+        typeof navigator.contacts.select === 'function'
+      ) {
+        try {
+          const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+          if (Array.isArray(picked)) {
+            for (const c of picked) {
+              const name = (Array.isArray(c.name) ? c.name[0] : c.name) || '';
+              const tel = (Array.isArray(c.tel) ? c.tel[0] : c.tel) || '';
+              if (name) addDraftPerson(name, tel);
+            }
+            appContext.wizard.contactMessage = '';
+            renderApp();
+          }
+        } catch {
+          // User cancelled picker
+        }
+      } else {
+        appContext.wizard.contactMessage = t(lang, 'contactsUnavailable');
+        renderApp();
+        const nameEl = document.getElementById('person-name-input');
+        if (nameEl) nameEl.focus();
+      }
+    });
+  });
+
+  root.querySelectorAll('[data-action="focus-manual-person"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const nameEl = root.querySelector('#person-name-input');
+      if (nameEl) nameEl.focus();
+    });
+  });
+
+  const manualForm = root.querySelector('#manual-person-form');
+  if (manualForm) {
+    const nameInput = root.querySelector('#person-name-input');
+    const phoneInput = root.querySelector('#person-phone-input');
+    if (nameInput) {
+      nameInput.addEventListener('input', (e) => {
+        appContext.wizard.draftName = e.target.value;
+      });
+    }
+    if (phoneInput) {
+      phoneInput.addEventListener('input', (e) => {
+        appContext.wizard.draftPhone = e.target.value;
+      });
+    }
+    manualForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!appContext.wizard.draftName.trim()) return;
+      addDraftPerson(appContext.wizard.draftName, appContext.wizard.draftPhone);
+      appContext.wizard.draftName = '';
+      appContext.wizard.draftPhone = '';
+      renderApp();
+      const nextName = document.getElementById('person-name-input');
+      if (nextName) nextName.focus();
+    });
+  }
+
+  root.querySelectorAll('[data-action="quick-add-12"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      for (const c of QUICK_SAMPLE_CONTACTS) {
+        addDraftPerson(c.name, c.phone);
+      }
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="remove-draft-person"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.getAttribute('data-index'));
+      appContext.wizard.people.splice(idx, 1);
+      renderApp();
+    });
+  });
+
+  const deadlineInput = root.querySelector('#deadline-input');
+  if (deadlineInput) {
+    deadlineInput.addEventListener('input', (e) => {
+      appContext.wizard.deadline = e.target.value;
+    });
+  }
+
+  root.querySelectorAll('[data-action="wizard-finish"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const w = appContext.wizard;
+      if (w.people.length === 0) return;
+      const enteredPaise = rupeesToPaise(w.amountStr || '0');
+      const isTotal = w.amountMode === 'total';
+      const amountPerPersonPaise = isTotal
+        ? Math.floor(enteredPaise / w.people.length)
+        : enteredPaise;
+      const totalTargetPaise = isTotal
+        ? enteredPaise
+        : enteredPaise * w.people.length;
+
+      const newId = `col_${Date.now()}`;
+      appContext.state = addCollection(appContext.state, {
+        id: newId,
+        type: w.type,
+        title: w.title.trim() || t(getLang(), `preset_${w.type}`),
+        amountMode: w.amountMode,
+        amountPerPersonPaise,
+        totalTargetPaise,
+        deadline: w.deadline.trim(),
+        people: w.people
+      });
+      appContext.wizard = createDefaultDraft(getLang());
+      navigate(`#detail/${newId}`);
+    });
+  });
 }
 
 async function boot() {
@@ -412,6 +933,15 @@ async function boot() {
   window.addEventListener('hashchange', () => {
     appContext.route = parseHash(window.location.hash);
     renderApp();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (appContext.route.name === 'create' && appContext.wizard.step === 1) {
+      if (/^\d$/.test(e.key)) {
+        handleNumpadInput(e.key);
+      } else if (e.key === 'Backspace') {
+        handleNumpadInput('⌫');
+      }
+    }
   });
   renderApp();
 }
