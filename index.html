@@ -122,16 +122,23 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       min-height: 48px;
     }
 
     .header-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       min-width: 0;
       flex: 1;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     .screen-title {
@@ -184,9 +191,10 @@
     }
 
     .lang-seg {
-      min-width: 44px;
-      min-height: 44px;
-      padding: 0 8px;
+      min-width: 38px;
+      min-height: 38px;
+      width: 38px;
+      height: 38px;
       border-radius: var(--radius-pill);
       display: grid;
       place-items: center;
@@ -199,6 +207,153 @@
     .lang-seg.active {
       background: var(--green);
       color: #FFFFFF;
+    }
+
+    /* Screen 1: Language Pick */
+    .lang-hero {
+      text-align: center;
+      padding-top: 8px;
+    }
+
+    .logo-tile {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: var(--green);
+      display: grid;
+      place-items: center;
+      font-size: 38px;
+      margin: 4px auto 14px;
+      box-shadow: 0 10px 22px -8px rgba(31, 168, 91, 0.55);
+    }
+
+    .lang-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .lang-pick-card {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--card-white);
+      border: 2px solid var(--btn-border);
+      border-radius: var(--radius-card);
+      padding: 16px 18px;
+      min-height: 92px;
+      text-align: left;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .lang-pick-card.selected {
+      border: 2.5px solid var(--green);
+      box-shadow: var(--shadow-selected);
+    }
+
+    .lang-pick-tile {
+      width: 62px;
+      height: 62px;
+      border-radius: 16px;
+      background: var(--toggle-track);
+      color: #5B5249;
+      display: grid;
+      place-items: center;
+      font-size: 29px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .lang-pick-card.selected .lang-pick-tile {
+      background: var(--green-tint);
+      color: var(--green);
+    }
+
+    .lang-pick-radio {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2.5px solid var(--ring-open);
+      display: grid;
+      place-items: center;
+      font-size: 21px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .lang-pick-card.selected .lang-pick-radio {
+      background: var(--green);
+      border-color: var(--green);
+      color: #FFFFFF;
+    }
+
+    /* Screen 2: Home Collection Cards */
+    .collection-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .collection-card {
+      width: 100%;
+      background: var(--card-white);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 16px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .collection-card-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .collection-type-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 15px;
+      background: var(--saffron-tint);
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .collection-pct-chip {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--green);
+      background: var(--green-tint);
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      flex-shrink: 0;
+    }
+
+    .collection-card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .empty-card {
+      background: var(--card-white);
+      border: 1.5px dashed var(--btn-border);
+      border-radius: var(--radius-card);
+      padding: 32px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 12px 0;
     }
 
     /* Buttons */
@@ -286,48 +441,32 @@
       transition: width 0.45s ease-out;
     }
 
-    /* Status indicators */
-    .status-paid {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      border-radius: 50%;
-      background: var(--green);
-      color: #FFFFFF;
-      display: grid;
-      place-items: center;
-      font-size: 23px;
-      font-weight: 800;
-      flex-shrink: 0;
+    /* Bottom sheet + scrim */
+    .scrim {
+      position: fixed;
+      inset: 0;
+      background: var(--scrim);
+      z-index: 40;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
     }
 
-    .status-paid.pop {
-      animation: pop 0.4s ease-out;
+    .bottom-sheet {
+      width: 100%;
+      max-width: 440px;
+      background: var(--cream);
+      border-radius: 28px 28px 0 0;
+      padding: 20px 22px 28px;
+      box-shadow: 0 -12px 40px -10px rgba(40, 30, 15, 0.4);
     }
 
-    .status-pending {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      border-radius: 50%;
-      background: var(--saffron-tint);
-      border: 3px solid var(--saffron);
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
-
-    .wa-circle {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      border-radius: 50%;
-      background: var(--wa-green);
-      color: #FFFFFF;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-      text-decoration: none;
+    .sheet-handle {
+      width: 48px;
+      height: 5px;
+      border-radius: var(--radius-pill);
+      background: var(--dot-inactive);
+      margin: 0 auto 18px;
     }
 
     @media (max-width: 380px) {
