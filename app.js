@@ -570,7 +570,7 @@ function renderCreateScreen() {
           <button
             type="button"
             data-action="quick-add-12"
-            style="font-size:13px; font-weight:700; color:var(--green-deep); background:var(--green-tint); padding:6px 12px; border-radius:999px; min-height:36px;"
+            style="font-size:14px; font-weight:700; color:var(--green-deep); background:var(--green-tint); padding:8px 14px; border-radius:999px; min-height:44px;"
           >+12 Sample Contacts</button>
         </div>
       </form>
@@ -986,12 +986,12 @@ function renderShareScreen(collectionId) {
             type="text"
             value="${escapeHtml(vpa)}"
             placeholder="name@okaxis"
-            style="border:none; border-bottom:1.5px dashed var(--btn-border); background:transparent; font-size:18px; font-weight:800; color:var(--green-deep); width:100%; outline:none; padding:2px 0;"
+            style="border:none; border-bottom:1.5px dashed var(--btn-border); background:transparent; font-size:18px; font-weight:800; color:var(--green-deep); width:100%; min-height:44px; outline:none; padding:4px 0;"
           />
           <button
             type="button"
             data-action="copy-vpa"
-            style="font-size:13px; color:var(--ink-muted); font-weight:700; text-align:left; min-height:36px; display:flex; align-items:center;"
+            style="font-size:13px; color:var(--ink-muted); font-weight:700; text-align:left; min-height:44px; display:flex; align-items:center;"
           >
             ${appContext.copiedTarget === 'vpa' ? t(lang, 'copied') : t(lang, 'tapToCopy')}
           </button>
