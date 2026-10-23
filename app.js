@@ -1,4 +1,4 @@
-// Chanda Collector — P2: Create Collection 3-Step Wizard (Type -> Amount Numpad -> Contacts/Manual People)
+// Chanda Collector — P3: Collection Detail Screen, Progress Ring, Person Rows, Mark-Paid Sheet & 5s Undo
 import {
   SUPPORTED_LANGS,
   registerTranslations,
@@ -9,7 +9,10 @@ import {
   loadState,
   updateSettings,
   addCollection,
-  canCreateCollection
+  canCreateCollection,
+  setPersonPaymentStatus,
+  undoLastAction,
+  clearUndo
 } from './lib/store.js';
 import {
   inr,
@@ -18,8 +21,11 @@ import {
   avatarInitial,
   typeEmoji
 } from './lib/format.js';
-import { computeTally } from './lib/tally.js';
+import { computeTally, getPersonSharePaise } from './lib/tally.js';
 import { parsePhone } from './lib/phone.js';
+import { link as waLink, buildNudgeMessage } from './lib/wa.js';
+
+const WHATSAPP_SVG = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.148-.669-1.611-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.247-.694.247-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>`;
 
 const QUICK_SAMPLE_CONTACTS = [
   { name: 'Priya Sharma', phone: '9876543210' },
@@ -32,17 +38,17 @@ const QUICK_SAMPLE_CONTACTS = [
   { name: 'Suresh Nair', phone: '9876543217' },
   { name: 'Pooja Patel', phone: '9876543218' },
   { name: 'Deepak Mehta', phone: '9876543219' },
-  { name: 'AnjaliDesai', phone: '9876543220' },
+  { name: 'Anjali Desai', phone: '9876543220' },
   { name: 'Rohan Malhotra', phone: '9876543221' }
 ];
 
-export function createDefaultDraft(lang = 'hinglish') {
+export function createDefaultDraft() {
   return {
-    step: 0, // 0: type, 1: amount, 2: people
+    step: 0,
     type: 'gift',
     title: '',
     titleCustomized: false,
-    amountMode: 'perPerson', // 'perPerson' | 'total'
+    amountMode: 'perPerson',
     amountStr: '500',
     people: [],
     deadline: '',
@@ -58,6 +64,9 @@ export const appContext = {
   route: { name: 'home', params: {} },
   proSheetOpen: false,
   wizard: createDefaultDraft(),
+  activeSheetPersonId: null,
+  justPaidPersonId: null,
+  undoToast: null, // { personName, status, timerId }
   ready: false
 };
 
@@ -630,6 +639,232 @@ function renderCreateScreen() {
   `;
 }
 
+function renderMarkPaidSheet(col, lang) {
+  if (!appContext.activeSheetPersonId) return '';
+  const idx = col.people.findIndex((p) => p.id === appContext.activeSheetPersonId);
+  if (idx === -1) return '';
+  const person = col.people[idx];
+  const sharePaise = getPersonSharePaise(col, person, idx);
+  const amountStr = inr(sharePaise);
+
+  return `
+    <div class="scrim" data-action="close-mark-sheet">
+      <div class="bottom-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+          <div class="avatar-circle" style="background:${person.avatarColor}; width:50px; height:50px; min-width:50px; font-size:19px;">
+            ${escapeHtml(avatarInitial(person.name))}
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:20px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(person.name)}</div>
+            <div style="font-size:15px; color:var(--ink-muted); font-weight:600;">${t(lang, 'paidQuestion', { amount: amountStr })}</div>
+          </div>
+        </div>
+
+        <div class="method-choice-row">
+          <button
+            type="button"
+            class="method-tile cash-highlight"
+            data-action="confirm-mark-paid"
+            data-person-id="${escapeHtml(person.id)}"
+            data-method="cash"
+          >
+            <div style="font-size:34px; line-height:1;">💵</div>
+            <div>${t(lang, 'cash')}</div>
+          </button>
+          <button
+            type="button"
+            class="method-tile"
+            data-action="confirm-mark-paid"
+            data-person-id="${escapeHtml(person.id)}"
+            data-method="online"
+          >
+            <div style="font-size:34px; line-height:1;">📱</div>
+            <div>${t(lang, 'online')}</div>
+          </button>
+        </div>
+
+        ${
+          person.status === 'paid'
+            ? `
+          <button
+            type="button"
+            class="btn-secondary"
+            style="margin-top:12px;"
+            data-action="confirm-mark-unpaid"
+            data-person-id="${escapeHtml(person.id)}"
+          >
+            <span>○</span>
+            <span>${t(lang, 'markUnpaid')}</span>
+          </button>
+        `
+            : ''
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderUndoToast(lang) {
+  if (!appContext.undoToast) return '';
+  const { personName, status } = appContext.undoToast;
+  const shortName = String(personName || '').split(' ')[0] || personName;
+  const label =
+    status === 'paid'
+      ? t(lang, 'undoPaidToast', { name: shortName })
+      : t(lang, 'undoUnpaidToast', { name: shortName });
+
+  return `
+    <div class="undo-toast" role="status" aria-live="polite">
+      <span style="font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(label)}</span>
+      <button type="button" class="undo-btn" data-action="undo-last-payment">
+        ${t(lang, 'undo')}
+      </button>
+    </div>
+  `;
+}
+
+function renderDetailScreen(collectionId) {
+  const lang = getLang();
+  const col = (appContext.state.collections || []).find((c) => c.id === collectionId);
+  if (!col) {
+    return renderHomeScreen();
+  }
+
+  const tally = computeTally(col);
+  const emoji = typeEmoji(col.type);
+  const collectedStr = inr(tally.collectedPaise);
+  const totalStr = inr(tally.totalPaise);
+  const vpa = appContext.state.settings.vpa || '';
+  const customTemplate = appContext.state.settings.isPro
+    ? appContext.state.settings.customNudgeTemplate
+    : '';
+
+  return `
+    <main class="screen" data-screen="detail" data-collection-id="${escapeHtml(col.id)}">
+      <header class="header-row">
+        <div class="header-left">
+          <button type="button" class="back-btn" data-action="go-home" aria-label="Back">←</button>
+          <h1 class="screen-title">${emoji} ${escapeHtml(col.title)}</h1>
+        </div>
+        <div class="header-right">
+          ${renderLanguageToggle()}
+        </div>
+      </header>
+
+      <section class="ring-section">
+        <div
+          class="progress-ring"
+          style="background:conic-gradient(var(--green) 0% ${tally.percent}%, var(--ring-track) ${tally.percent}% 100%);"
+        >
+          <div class="progress-ring-inner">
+            <div style="font-size:14px; color:var(--ink-muted); font-weight:700;">${t(lang, 'collected')}</div>
+            <div style="font-size:34px; font-weight:800; color:var(--green); letter-spacing:-1px; line-height:1.1;">${collectedStr}</div>
+            <div style="font-size:15px; color:#9A9085; font-weight:600;">${t(lang, 'ofAmount', { amount: totalStr })}</div>
+          </div>
+        </div>
+
+        <div class="ring-chips">
+          <div class="chip-paid">${t(lang, 'paidChip', { count: tally.paidCount })}</div>
+          <div class="chip-pending">${t(lang, 'pendingChip', { count: tally.pendingCount })}</div>
+        </div>
+      </section>
+
+      <section class="person-list" aria-label="People">
+        ${col.people
+          .map((p, idx) => {
+            const isPaid = p.status === 'paid';
+            const isJustPaid = isPaid && appContext.justPaidPersonId === p.id;
+            const methodLabel =
+              p.method === 'online' ? t(lang, 'online') : t(lang, 'cash');
+            const subText = isPaid
+              ? isJustPaid
+                ? `${methodLabel} · ${t(lang, 'justNow')}`
+                : methodLabel
+              : t(lang, 'pending');
+
+            const nudgeMsg = buildNudgeMessage({
+              collection: col,
+              person: p,
+              personIndex: idx,
+              lang,
+              vpa,
+              customTemplate
+            });
+            const personWaHref = waLink(p.phone || '', nudgeMsg);
+
+            return `
+            <div class="person-row ${isPaid ? (isJustPaid ? 'just-paid' : '') : 'pending'}">
+              <button
+                type="button"
+                class="person-row-main"
+                data-action="open-mark-sheet"
+                data-person-id="${escapeHtml(p.id)}"
+              >
+                <div class="avatar-circle" style="background:${p.avatarColor};">
+                  ${escapeHtml(avatarInitial(p.name))}
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:17px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</div>
+                  <div style="font-size:13px; color:${
+                    isPaid
+                      ? isJustPaid
+                        ? 'var(--green-deep)'
+                        : 'var(--ink-muted)'
+                      : 'var(--pending-text)'
+                  }; font-weight:${isPaid ? (isJustPaid ? '700' : '500') : '600'};">
+                    ${escapeHtml(subText)}
+                  </div>
+                </div>
+                ${
+                  isPaid
+                    ? `<div class="status-paid ${isJustPaid ? 'pop' : ''}" aria-label="${t(lang, 'paid')}">✓</div>`
+                    : `<div class="status-pending" aria-label="${t(lang, 'pending')}"></div>`
+                }
+              </button>
+
+              ${
+                !isPaid
+                  ? `
+                <a
+                  href="${escapeHtml(personWaHref)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="wa-circle"
+                  title="${t(lang, 'remindOnWhatsApp')}"
+                  aria-label="${t(lang, 'remindOnWhatsApp')} ${escapeHtml(p.name)}"
+                >${WHATSAPP_SVG}</a>
+              `
+                  : ''
+              }
+            </div>
+          `;
+          })
+          .join('')}
+      </section>
+
+      <div class="bottom-bar">
+        <button
+          type="button"
+          class="btn-wa"
+          data-action="open-share-screen"
+          data-id="${escapeHtml(col.id)}"
+        >
+          ${WHATSAPP_SVG}
+          <span>${
+            tally.pendingCount > 0
+              ? t(lang, 'remindAllCount', { count: tally.pendingCount })
+              : t(lang, 'remindAll')
+          }</span>
+        </button>
+      </div>
+
+      ${renderMarkPaidSheet(col, lang)}
+      ${renderUndoToast(lang)}
+    </main>
+  `;
+}
+
 export function renderApp() {
   const root = document.getElementById('app');
   if (!root) return;
@@ -639,6 +874,8 @@ export function renderApp() {
     root.innerHTML = renderLangPickScreen();
   } else if (route.name === 'create') {
     root.innerHTML = renderCreateScreen();
+  } else if (route.name === 'detail') {
+    root.innerHTML = renderDetailScreen(route.params.id);
   } else {
     root.innerHTML = renderHomeScreen();
   }
@@ -679,6 +916,20 @@ function addDraftPerson(name, phoneStr) {
   });
 }
 
+function triggerUndoToast(personName, status) {
+  if (appContext.undoToast && appContext.undoToast.timerId) {
+    clearTimeout(appContext.undoToast.timerId);
+  }
+  const timerId = setTimeout(() => {
+    appContext.undoToast = null;
+    appContext.justPaidPersonId = null;
+    clearUndo();
+    renderApp();
+  }, 5000);
+
+  appContext.undoToast = { personName, status, timerId };
+}
+
 function bindEvents(root) {
   root.querySelectorAll('[data-action="set-lang"]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -698,6 +949,12 @@ function bindEvents(root) {
         lang: getLang(),
         hasPickedLang: true
       });
+      navigate('#home');
+    });
+  });
+
+  root.querySelectorAll('[data-action="go-home"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
       navigate('#home');
     });
   });
@@ -723,7 +980,7 @@ function bindEvents(root) {
         return;
       }
       const lang = getLang();
-      appContext.wizard = createDefaultDraft(lang);
+      appContext.wizard = createDefaultDraft();
       appContext.wizard.title = t(lang, `preset_${appContext.wizard.type}`);
       navigate('#create');
     });
@@ -919,8 +1176,87 @@ function bindEvents(root) {
         deadline: w.deadline.trim(),
         people: w.people
       });
-      appContext.wizard = createDefaultDraft(getLang());
+      appContext.wizard = createDefaultDraft();
       navigate(`#detail/${newId}`);
+    });
+  });
+
+  // Detail & Mark-Paid sheet handlers
+  root.querySelectorAll('[data-action="open-mark-sheet"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      appContext.activeSheetPersonId = btn.getAttribute('data-person-id');
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="close-mark-sheet"]').forEach((el) => {
+    el.addEventListener('click', () => {
+      appContext.activeSheetPersonId = null;
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="confirm-mark-paid"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const collectionId = appContext.route.params.id;
+      const personId = btn.getAttribute('data-person-id');
+      const method = btn.getAttribute('data-method') || 'cash';
+      const col = (appContext.state.collections || []).find((c) => c.id === collectionId);
+      const person = col?.people.find((p) => p.id === personId);
+      if (!col || !person) return;
+
+      appContext.state = setPersonPaymentStatus(appContext.state, {
+        collectionId,
+        personId,
+        status: 'paid',
+        method
+      });
+      appContext.activeSheetPersonId = null;
+      appContext.justPaidPersonId = personId;
+      triggerUndoToast(person.name, 'paid');
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="confirm-mark-unpaid"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const collectionId = appContext.route.params.id;
+      const personId = btn.getAttribute('data-person-id');
+      const col = (appContext.state.collections || []).find((c) => c.id === collectionId);
+      const person = col?.people.find((p) => p.id === personId);
+      if (!col || !person) return;
+
+      appContext.state = setPersonPaymentStatus(appContext.state, {
+        collectionId,
+        personId,
+        status: 'pending'
+      });
+      appContext.activeSheetPersonId = null;
+      appContext.justPaidPersonId = null;
+      triggerUndoToast(person.name, 'pending');
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="undo-last-payment"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (appContext.undoToast && appContext.undoToast.timerId) {
+        clearTimeout(appContext.undoToast.timerId);
+      }
+      const restored = undoLastAction();
+      if (restored) {
+        appContext.state = restored;
+      }
+      appContext.undoToast = null;
+      appContext.justPaidPersonId = null;
+      renderApp();
+    });
+  });
+
+  root.querySelectorAll('[data-action="open-share-screen"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      navigate(`#share/${id}`);
     });
   });
 }
@@ -932,6 +1268,7 @@ async function boot() {
   appContext.ready = true;
   window.addEventListener('hashchange', () => {
     appContext.route = parseHash(window.location.hash);
+    appContext.activeSheetPersonId = null;
     renderApp();
   });
   window.addEventListener('keydown', (e) => {
