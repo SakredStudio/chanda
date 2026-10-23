@@ -95,5 +95,7 @@
   "proComingSoonTitle": "Chanda Pro — Jald aa raha hai",
   "proLimitMsg": "Free mein 3 active chande rakh sakte hain. Unlimited chande aur CSV export ke liye Pro jald aa raha hai.",
   "installApp": "App Install karein",
-  "contactsUnavailable": "Is browser mein contact picker nahi hai — neeche naam aur number likhein."
+  "contactsUnavailable": "Is browser mein contact picker nahi hai — neeche naam aur number likhein.",
+  "vpaMissing": "QR dikhane ke liye Settings mein apni UPI ID jodein",
+  "privacyPolicy": "Privacy policy"
 }

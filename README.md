@@ -44,9 +44,17 @@ node --test projects/chanda-collector/app/tests/*.test.mjs
   - Person rows with status indicators (`✓` green filled circle for paid; `○` saffron open ring + WhatsApp remind circle for pending).
   - Bottom sheet to mark `💵 Cash` or `📱 Online` (or revert to pending), triggering the `pop` animation and a 5-second Undo toast that restores exact previous state including timestamps.
 - **P4 — Share / Nudge Screen, "Next Pending" Flow, UPI QR + `lib/upi.js`:**
-  - WhatsApp message preview bubble (`#DCF8C6`) ending with the mandatory growth-loop footer `— sent with Chanda · https://sakredstudio.ca/chanda`.
+  - WhatsApp message preview bubble (`#DCF8C6`) ending with the mandatory growth-loop footer `— sent with Chanda · https://sakredstudio.ca/chanda` (placeholder `APP_LINK` in `lib/wa.js`; Soul sets the real one).
   - Sequential **"Next pending person"** flow (queue strip + auto-advance on tap so the organizer nudges each pending person in turn).
   - `lib/upi.js` + vendored MIT `vendor/qrcode.js` (`vendor/LICENSE`): builds `upi://pay?pa=<vpa>&pn=<payee name>&am=<amount>&cu=INR&tn=<collection name>` and renders a scannable SVG QR code on device.
 - **P5 & P6 — PWA Offline Shell, Settings & QA:**
   - `manifest.webmanifest`, `icons/` (`192`, `512`, `maskable 512`), and cache-first `sw.js` (`chanda-shell-v1`).
   - Settings screen: organizer name & UPI ID (`vpa`), JSON Backup Export & Import (validate, migrate, confirm, replace), CSV export (Pro gate), install prompt, and privacy note (`"Your data stays on this phone. Chanda never moves money."`).
+
+## Release rule
+
+`sw.js` is cache-first. Phones that already installed the app keep serving the old shell until `CACHE_NAME` in `sw.js` changes, so bump it (`chanda-shell-v3`, `-v4`, ...) in every commit that is deployed.
+
+## Review log
+
+- 2026-10-23 Claude review of the Antigravity build: fixed `fonts/mukta.css` (URLs resolved to `fonts/fonts/`, so Mukta never loaded); removed the hard-coded `rahul@okaxis` fallback UPI ID from the share screen, nudge message and copy button (an organizer with no UPI ID set now sees a "add your UPI ID" prompt and no QR); added `privacy.html`; bumped the service-worker cache to v2.

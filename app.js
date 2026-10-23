@@ -899,7 +899,7 @@ function renderShareScreen(collectionId) {
     ? getPersonSharePaise(col, currentPerson, currentPersonIdxInCol)
     : tally.perPersonDisplayPaise;
 
-  const vpa = appContext.state.settings.vpa || 'rahul@okaxis';
+  const vpa = appContext.state.settings.vpa || '';
   const payeeName = appContext.state.settings.payeeName || 'Organizer';
   const customTemplate = appContext.state.settings.isPro
     ? appContext.state.settings.customNudgeTemplate
@@ -924,7 +924,8 @@ function renderShareScreen(collectionId) {
     });
     qrContentHtml = renderQrSvg(upiUri, 3);
   } else {
-    qrContentHtml = `<div style="font-size:12px; color:var(--pending-text); text-align:center; padding:8px;">${t(lang, 'vpaInvalid')}</div>`;
+    // No fallback VPA ever: the organizer must set their own UPI ID in Settings.
+    qrContentHtml = `<button type="button" data-action="open-settings" style="font-size:12px; color:var(--pending-text); text-align:center; padding:8px; min-height:44px; font-weight:700; line-height:1.35;">${t(lang, vpa ? 'vpaInvalid' : 'vpaMissing')}</button>`;
   }
 
   return `
@@ -1156,6 +1157,7 @@ function renderSettingsScreen() {
         <p style="margin:0; font-size:14px; color:var(--ink-soft); font-weight:600; line-height:1.45;">
           ${t(lang, 'privacyNote')}
         </p>
+        <a href="./privacy.html" target="_blank" rel="noopener" style="font-size:14px; font-weight:700; color:var(--green-deep); min-height:44px; display:inline-flex; align-items:center;">${t(lang, 'privacyPolicy')} →</a>
       </section>
 
       ${renderProModal(lang)}
@@ -1621,7 +1623,7 @@ function bindEvents(root) {
 
   root.querySelectorAll('[data-action="copy-vpa"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const vpa = appContext.state.settings.vpa || 'rahul@okaxis';
+      const vpa = appContext.state.settings.vpa || '';
       copyText(vpa, 'vpa');
     });
   });
@@ -1658,7 +1660,7 @@ function bindEvents(root) {
         person,
         personIndex: idxInCol,
         lang: getLang(),
-        vpa: appContext.state.settings.vpa || 'rahul@okaxis',
+        vpa: appContext.state.settings.vpa || '',
         customTemplate: appContext.state.settings.isPro
           ? appContext.state.settings.customNudgeTemplate
           : ''

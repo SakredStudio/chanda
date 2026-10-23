@@ -1,10 +1,13 @@
 // Chanda Collector — Service Worker (cache-first app shell, versioned cache name)
 
-const CACHE_NAME = 'chanda-shell-v1';
+// Cache-first shell: installed phones only pick up a new release when this name changes.
+// BUMP THIS ON EVERY DEPLOY (v2 = 2026-10-23 Claude review fixes).
+const CACHE_NAME = 'chanda-shell-v2';
 
 const APP_SHELL_ASSETS = [
   './',
   './index.html',
+  './privacy.html',
   './app.js',
   './manifest.webmanifest',
   './i18n/en.json',

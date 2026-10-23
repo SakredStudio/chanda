@@ -49,3 +49,27 @@ test('wa.buildNudgeMessage: builds localized Hindi, English, and Hinglish messag
   assert.ok(summary.includes('○ *Baaki (1):*'));
   assert.ok(summary.endsWith(SHARE_LINE));
 });
+
+test('wa: no UPI ID configured -> message has no UPI line and app.js has no fallback VPA', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const collection = {
+    id: 'c2',
+    type: 'gift',
+    title: 'Office Farewell',
+    amountMode: 'perPerson',
+    amountPerPersonPaise: 20000,
+    people: [{ id: 'p1', name: 'Amit Kumar', status: 'pending' }]
+  };
+  const msg = buildNudgeMessage({ collection, person: collection.people[0], lang: 'en', vpa: '' });
+  assert.ok(!msg.includes('UPI:'), 'nudge must not invent a UPI line when none is configured');
+  assert.ok(!msg.includes('@'), 'nudge must not contain any VPA when none is configured');
+
+  const appJs = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'app.js'),
+    'utf8'
+  );
+  const fallbackVpa = appJs.match(/\|\|\s*'[^']*@[^']*'/g);
+  assert.equal(fallbackVpa, null, `app.js must never fall back to a hard-coded UPI ID: ${fallbackVpa}`);
+});

@@ -95,5 +95,7 @@
   "proComingSoonTitle": "Chanda Pro — Coming Soon",
   "proLimitMsg": "Free tier supports up to 3 active collections. Pro (unlimited collections, CSV export, custom templates) is coming soon.",
   "installApp": "Install App",
-  "contactsUnavailable": "Contact picker not supported on this browser — type name & number below."
+  "contactsUnavailable": "Contact picker not supported on this browser — type name & number below.",
+  "vpaMissing": "Add your UPI ID in Settings to show a QR",
+  "privacyPolicy": "Privacy policy"
 }
