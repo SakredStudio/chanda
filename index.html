@@ -787,6 +787,128 @@
       flex-shrink: 0;
     }
 
+    /* Screen 6: Share / Nudge on WhatsApp */
+    .wa-bubble-preview {
+      background: var(--wa-bubble);
+      border-radius: 18px 18px 18px 6px;
+      padding: 16px;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #1B2A1B;
+      box-shadow: 0 4px 12px -8px rgba(40, 30, 15, 0.3);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .upi-qr-row {
+      display: flex;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .upi-card {
+      flex: 1;
+      min-width: 0;
+      background: var(--card-white);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: center;
+      text-align: left;
+    }
+
+    .qr-card {
+      width: 124px;
+      min-width: 124px;
+      background: var(--card-white);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .qr-box {
+      width: 96px;
+      height: 96px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #FFFFFF;
+    }
+
+    .qr-box svg {
+      width: 96px;
+      height: 96px;
+      display: block;
+    }
+
+    .summary-link-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #EEF4FF;
+      border: 1px solid #CFE0FB;
+      border-radius: 16px;
+      padding: 12px 14px;
+      min-height: 60px;
+    }
+
+    .copy-pill-btn {
+      min-height: 44px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #3D5FA8;
+      background: #FFFFFF;
+      border-radius: var(--radius-pill);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pending-queue-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+
+    .queue-person-chip {
+      min-height: 44px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      background: var(--card-white);
+      border: 1.5px solid var(--btn-border);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .queue-person-chip.current {
+      border-color: var(--wa-green);
+      background: var(--green-tint);
+      color: var(--green-deep);
+    }
+
+    .queue-person-chip.nudged {
+      opacity: 0.65;
+      background: var(--toggle-track);
+    }
+
     /* Buttons */
     .btn-primary {
       width: 100%;
