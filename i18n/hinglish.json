@@ -97,5 +97,15 @@
   "installApp": "App Install karein",
   "contactsUnavailable": "Is browser mein contact picker nahi hai — neeche naam aur number likhein.",
   "vpaMissing": "QR dikhane ke liye Settings mein apni UPI ID jodein",
-  "privacyPolicy": "Privacy policy"
+  "privacyPolicy": "Privacy policy",
+  "proTitle": "Chanda Pro",
+  "proDesc": "Free: 3 active chande tak. Pro ({price}, ek baar): unlimited chande, CSV download, apna WhatsApp message.",
+  "buyPro": "Pro kholein · {price}",
+  "restorePro": "Purchase wapas layein",
+  "proActive": "Pro chalu hai ✓",
+  "proWebNote": "Pro sirf Google Play app mein milta hai.",
+  "purchaseCancelled": "Purchase cancel hui",
+  "purchaseFailed": "Purchase nahi ho payi. Phir try karein.",
+  "noPurchaseFound": "Is Google account pe Pro purchase nahi mili.",
+  "customTemplateHint": "Aap {name} {title} {amount} {collected} {total} {vpa} likh sakte hain"
 }

@@ -68,3 +68,7 @@ git subtree push --prefix=projects/chanda-collector/app https://github.com/Sakre
 ```
 
 The workflow in `.github/workflows/deploy.yml` runs the tests and publishes the folder. Bump `CACHE_NAME` in `sw.js` first.
+
+## Pro unlock (Google Play Billing)
+
+`lib/billing.js` uses the Digital Goods API + Payment Request, which exist only inside the Play-installed TWA (`projects/chanda-twa`, `playBilling.enabled`). On the open web every call reports "unavailable", the Pro sheet shows the description only, and nothing is sold (Play policy). Product: one-time, non-consumable `chanda_pro`, ₹149 (price text comes from Play's `getDetails`; `₹149` is the fallback). `complete('success')` acknowledges the purchase; `listPurchases()` restores it at boot and from Settings → Restore purchase. No backend: the entitlement is `settings.isPro` in local storage. Pro = unlimited active collections, CSV export, custom WhatsApp template (Settings).

@@ -97,5 +97,15 @@
   "installApp": "ऐप इंस्टॉल करें",
   "contactsUnavailable": "इस ब्राउज़र में कॉन्टैक्ट पिकर उपलब्ध नहीं है — नीचे नाम और नंबर लिखें।",
   "vpaMissing": "QR दिखाने के लिए सेटिंग्स में अपनी UPI ID जोड़ें",
-  "privacyPolicy": "प्राइवेसी पॉलिसी"
+  "privacyPolicy": "प्राइवेसी पॉलिसी",
+  "proTitle": "चंदा Pro",
+  "proDesc": "मुफ्त: 3 सक्रिय चंदे तक। Pro ({price}, एक बार): अनलिमिटेड चंदे, CSV डाउनलोड, अपना व्हाट्सऐप संदेश।",
+  "buyPro": "Pro खोलें · {price}",
+  "restorePro": "खरीद वापस लाएं",
+  "proActive": "Pro चालू है ✓",
+  "proWebNote": "Pro सिर्फ़ Google Play ऐप में मिलता है।",
+  "purchaseCancelled": "खरीद रद्द हुई",
+  "purchaseFailed": "खरीद नहीं हो पाई। फिर कोशिश करें।",
+  "noPurchaseFound": "इस Google अकाउंट पर Pro खरीद नहीं मिली।",
+  "customTemplateHint": "आप {name} {title} {amount} {collected} {total} {vpa} लिख सकते हैं"
 }

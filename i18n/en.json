@@ -97,5 +97,15 @@
   "installApp": "Install App",
   "contactsUnavailable": "Contact picker not supported on this browser — type name & number below.",
   "vpaMissing": "Add your UPI ID in Settings to show a QR",
-  "privacyPolicy": "Privacy policy"
+  "privacyPolicy": "Privacy policy",
+  "proTitle": "Chanda Pro",
+  "proDesc": "Free: up to 3 active collections. Pro ({price}, one-time): unlimited collections, CSV export, your own WhatsApp message.",
+  "buyPro": "Unlock Pro · {price}",
+  "restorePro": "Restore purchase",
+  "proActive": "Pro is active ✓",
+  "proWebNote": "Pro unlock is available in the Google Play app.",
+  "purchaseCancelled": "Purchase cancelled",
+  "purchaseFailed": "Purchase failed. Please try again.",
+  "noPurchaseFound": "No Pro purchase found on this Google account.",
+  "customTemplateHint": "You can use {name} {title} {amount} {collected} {total} {vpa}"
 }
