@@ -72,3 +72,9 @@ The workflow in `.github/workflows/deploy.yml` runs the tests and publishes the 
 ## Pro unlock (Google Play Billing)
 
 `lib/billing.js` uses the Digital Goods API + Payment Request, which exist only inside the Play-installed TWA (`projects/chanda-twa`, `playBilling.enabled`). On the open web every call reports "unavailable", the Pro sheet shows the description only, and nothing is sold (Play policy). Product: one-time, non-consumable `chanda_pro`, ₹149 (price text comes from Play's `getDetails`; `₹149` is the fallback). `complete('success')` acknowledges the purchase; `listPurchases()` restores it at boot and from Settings → Restore purchase. No backend: the entitlement is `settings.isPro` in local storage. Pro = unlimited active collections, CSV export, custom WhatsApp template (Settings).
+
+## v1.1 (2026-10-24, after Soul's first phone test)
+- Detail screen: **Add people** (contacts or typed) to an existing collection; **Delete collection** with confirm sheet. Sample collections are ordinary collections, so they can be deleted to free the 3 free slots.
+- Settings: **Appearance** Light / Dark / Auto (follows the phone), persisted in `settings.theme`; dark palette is a token override on `html[data-theme="dark"]`.
+- Settings: **Delete all data** (confirm sheet) wipes storage but keeps language + theme; Pro is restored from Play on next launch / Restore purchase.
+- SW cache v4. Tests 32.

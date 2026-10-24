@@ -107,5 +107,18 @@
   "purchaseCancelled": "खरीद रद्द हुई",
   "purchaseFailed": "खरीद नहीं हो पाई। फिर कोशिश करें।",
   "noPurchaseFound": "इस Google अकाउंट पर Pro खरीद नहीं मिली।",
-  "customTemplateHint": "आप {name} {title} {amount} {collected} {total} {vpa} लिख सकते हैं"
+  "customTemplateHint": "आप {name} {title} {amount} {collected} {total} {vpa} लिख सकते हैं",
+  "theme": "रूप",
+  "themeLight": "हल्का",
+  "themeDark": "डार्क",
+  "themeSystem": "ऑटो",
+  "dangerZone": "सारा डेटा हटाएं",
+  "wipeHint": "इस फ़ोन से हर चंदा, व्यक्ति और सेटिंग हट जाएगी। कुछ रखना हो तो पहले बैकअप निकालें।",
+  "wipeAll": "सारा डेटा हटाएं",
+  "wipeConfirmTitle": "सब कुछ हटाएं?",
+  "wipeConfirmMsg": "इस फ़ोन के सारे चंदे, लोग और सेटिंग्स मिट जाएंगी। यह वापस नहीं होगा।",
+  "wipeDone": "सारा डेटा हट गया ✓",
+  "deleteConfirmTitle": "यह चंदा हटाएं?",
+  "deleteConfirmMsg": "\"{title}\" और इसके {count} लोग इस फ़ोन से हट जाएंगे। यह वापस नहीं होगा।",
+  "delete": "हटाएं"
 }

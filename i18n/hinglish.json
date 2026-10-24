@@ -107,5 +107,18 @@
   "purchaseCancelled": "Purchase cancel hui",
   "purchaseFailed": "Purchase nahi ho payi. Phir try karein.",
   "noPurchaseFound": "Is Google account pe Pro purchase nahi mili.",
-  "customTemplateHint": "Aap {name} {title} {amount} {collected} {total} {vpa} likh sakte hain"
+  "customTemplateHint": "Aap {name} {title} {amount} {collected} {total} {vpa} likh sakte hain",
+  "theme": "Look",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "Auto",
+  "dangerZone": "Saara data hatayein",
+  "wipeHint": "Is phone se har chanda, log aur setting hat jayegi. Kuch rakhna ho to pehle backup nikaalein.",
+  "wipeAll": "Saara data hatayein",
+  "wipeConfirmTitle": "Sab kuch hatayein?",
+  "wipeConfirmMsg": "Is phone ke saare chande, log aur settings mit jayengi. Yeh wapas nahi hoga.",
+  "wipeDone": "Saara data hat gaya ✓",
+  "deleteConfirmTitle": "Yeh chanda hatayein?",
+  "deleteConfirmMsg": "\"{title}\" aur iske {count} log is phone se hat jayenge. Yeh wapas nahi hoga.",
+  "delete": "Hatayein"
 }

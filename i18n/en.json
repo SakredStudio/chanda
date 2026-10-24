@@ -107,5 +107,18 @@
   "purchaseCancelled": "Purchase cancelled",
   "purchaseFailed": "Purchase failed. Please try again.",
   "noPurchaseFound": "No Pro purchase found on this Google account.",
-  "customTemplateHint": "You can use {name} {title} {amount} {collected} {total} {vpa}"
+  "customTemplateHint": "You can use {name} {title} {amount} {collected} {total} {vpa}",
+  "theme": "Appearance",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "Auto",
+  "dangerZone": "Delete all data",
+  "wipeHint": "Removes every collection, person and setting from this phone. Export a backup first if you want to keep anything.",
+  "wipeAll": "Delete all data",
+  "wipeConfirmTitle": "Delete everything?",
+  "wipeConfirmMsg": "All collections, people and settings on this phone will be erased. This cannot be undone.",
+  "wipeDone": "All data deleted ✓",
+  "deleteConfirmTitle": "Delete this collection?",
+  "deleteConfirmMsg": "\"{title}\" and its {count} people will be removed from this phone. This cannot be undone.",
+  "delete": "Delete"
 }

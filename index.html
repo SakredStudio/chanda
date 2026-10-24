@@ -41,6 +41,12 @@
       --ring-track: #F0E7D8;
       --wa-bubble: #DCF8C6;
       --scrim: rgba(33, 27, 20, 0.42);
+      --link-bg: #EEF4FF;
+      --link-border: #CFE0FB;
+      --link-text: #3D5FA8;
+      --link-text-soft: #5577BB;
+      --danger: #C0392B;
+      color-scheme: light;
 
       /* Shape & Spacing */
       --radius-card: 20px;
@@ -52,6 +58,56 @@
       --shadow-primary: 0 12px 24px -10px rgba(31, 168, 91, 0.6);
       --shadow-wa: 0 12px 24px -10px rgba(37, 211, 102, 0.6);
       --font-main: 'Mukta', 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+    }
+
+    html[data-theme="dark"] {
+      --green: #2DBE6C;
+      --green-deep: #5CD68F;
+      --green-tint: #17351F;
+      --green-confirmed-bg: #17351F;
+      --green-confirmed-border: #2F6B44;
+      --saffron-tint: #3A2C14;
+      --pending-row-bg: #241E18;
+      --pending-row-border: #3F3220;
+      --pending-text: #E0B35A;
+      --cream: #15120F;
+      --card-white: #201B17;
+      --ink: #F3EDE4;
+      --ink-alt: #EDE6DB;
+      --ink-soft: #C4B8A9;
+      --ink-muted: #9C9185;
+      --card-border: #2E2721;
+      --card-border-alt: #332B24;
+      --btn-border: #3A312A;
+      --pad-border: #2E2721;
+      --ring-open: #4A4038;
+      --dot-inactive: #4A4038;
+      --toggle-track: #2A2420;
+      --progress-track: #2E2721;
+      --ring-track: #2E2721;
+      --wa-bubble: #1E3A24;
+      --scrim: rgba(0, 0, 0, 0.62);
+      --link-bg: #1C2436;
+      --link-border: #2B3A5C;
+      --link-text: #9DB8F0;
+      --link-text-soft: #7F9BD6;
+      --danger: #FF7B6B;
+      --shadow-card: 0 6px 16px -12px rgba(0, 0, 0, 0.8);
+      color-scheme: dark;
+    }
+
+    .btn-danger {
+      width: 100%;
+      min-height: 56px;
+      border-radius: var(--radius-btn);
+      background: var(--danger);
+      color: #FFFFFF;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     * {
@@ -258,7 +314,7 @@
       height: 62px;
       border-radius: 16px;
       background: var(--toggle-track);
-      color: #5B5249;
+      color: var(--ink-soft);
       display: grid;
       place-items: center;
       font-size: 29px;
@@ -563,8 +619,8 @@
       height: 44px;
       min-width: 44px;
       border-radius: 50%;
-      background: #F4ECE0;
-      color: #9A8B79;
+      background: var(--toggle-track);
+      color: var(--ink-muted);
       display: grid;
       place-items: center;
       font-size: 17px;
@@ -842,7 +898,7 @@
       place-items: center;
       border-radius: 8px;
       overflow: hidden;
-      background: #FFFFFF;
+      background: var(--card-white);
     }
 
     .qr-box svg {
@@ -855,8 +911,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #EEF4FF;
-      border: 1px solid #CFE0FB;
+      background: var(--link-bg);
+      border: 1px solid var(--link-border);
       border-radius: 16px;
       padding: 12px 14px;
       min-height: 60px;
@@ -868,7 +924,7 @@
       font-size: 14px;
       font-weight: 800;
       color: #3D5FA8;
-      background: #FFFFFF;
+      background: var(--card-white);
       border-radius: var(--radius-pill);
       display: inline-flex;
       align-items: center;

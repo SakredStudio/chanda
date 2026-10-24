@@ -10,6 +10,8 @@ import {
   updateSettings,
   addCollection,
   deleteCollection,
+  addPeopleToCollection,
+  wipeAllData,
   canCreateCollection,
   setPersonPaymentStatus,
   undoLastAction,
@@ -92,8 +94,88 @@ export const appContext = {
   proPrice: PRO_PRICE_FALLBACK,
   billingBusy: false,
   billingNotice: '',
+  addPeopleOpen: false,
+  addDraft: { name: '', phone: '', people: [], message: '' },
+  confirm: null,
   ready: false
 };
+
+export function resolveTheme(pref) {
+  if (pref === 'dark' || pref === 'light') return pref;
+  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+  return 'light';
+}
+
+export function applyTheme() {
+  if (typeof document === 'undefined') return;
+  const resolved = resolveTheme(appContext.state?.settings?.theme);
+  document.documentElement.setAttribute('data-theme', resolved);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', resolved === 'dark' ? '#15120F' : '#1FA85B');
+}
+
+function renderConfirmSheet(lang) {
+  const c = appContext.confirm;
+  if (!c) return '';
+  const title = c.kind === 'wipe' ? t(lang, 'wipeConfirmTitle') : t(lang, 'deleteConfirmTitle');
+  const msg = c.kind === 'wipe'
+    ? t(lang, 'wipeConfirmMsg')
+    : t(lang, 'deleteConfirmMsg', { title: escapeHtml(c.title || ''), count: c.count || 0 });
+  return `
+    <div class="scrim" data-action="confirm-cancel">
+      <div class="bottom-sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+          <div style="width:50px; height:50px; border-radius:15px; background:var(--saffron-tint); display:grid; place-items:center; font-size:26px;">🗑️</div>
+          <div style="font-size:21px; font-weight:800;">${title}</div>
+        </div>
+        <p style="font-size:16px; color:var(--ink-soft); margin:0 0 18px; line-height:1.45;">${msg}</p>
+        <button type="button" class="btn-danger" data-action="confirm-ok">${t(lang, 'delete')}</button>
+        <button type="button" class="btn-secondary" data-action="confirm-cancel" style="margin-top:10px;">${t(lang, 'cancel')}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAddPeopleSheet(col, lang) {
+  if (!appContext.addPeopleOpen) return '';
+  const d = appContext.addDraft;
+  return `
+    <div class="scrim" data-action="close-add-people">
+      <div class="bottom-sheet" onclick="event.stopPropagation()" style="max-height:88dvh; overflow-y:auto;">
+        <div class="sheet-handle"></div>
+        <div style="font-size:21px; font-weight:800; margin-bottom:10px;">➕ ${t(lang, 'addPeople')}</div>
+        <button type="button" class="btn-secondary" data-action="add-people-contacts" style="margin-bottom:10px;">
+          <span>📇</span><span>${t(lang, 'fromContacts')}</span>
+        </button>
+        ${d.message ? `<div style="font-size:13px; color:var(--pending-text); background:var(--saffron-tint); padding:8px 12px; border-radius:12px; font-weight:600; margin-bottom:8px;">${escapeHtml(d.message)}</div>` : ''}
+        <form id="add-people-form" style="display:flex; flex-direction:column; gap:8px;">
+          <input id="add-name-input" type="text" class="text-input" style="min-height:48px;" placeholder="${escapeHtml(t(lang, 'personNamePlaceholder'))}" value="${escapeHtml(d.name)}" />
+          <div style="display:flex; gap:8px;">
+            <input id="add-phone-input" type="tel" class="text-input" style="min-height:48px; flex:1;" placeholder="${escapeHtml(t(lang, 'personPhonePlaceholder'))}" value="${escapeHtml(d.phone)}" />
+            <button type="submit" class="btn-primary" style="width:auto; min-width:96px; min-height:48px; padding:0 16px; font-size:17px;">${t(lang, 'addPersonBtn')}</button>
+          </div>
+        </form>
+        ${d.people.length ? `
+        <div style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; margin-top:10px;">
+          ${d.people.map((p, idx) => `
+            <div class="draft-person-row">
+              <div class="avatar-circle" style="background:${p.avatarColor}; width:44px; height:44px; min-width:44px;">${escapeHtml(avatarInitial(p.name))}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:17px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</div>
+                ${p.rawPhone ? `<div style="font-size:13px; color:var(--ink-muted);">${escapeHtml(p.rawPhone)}</div>` : ''}
+              </div>
+              <button type="button" class="remove-circle-btn" data-action="remove-add-person" data-index="${idx}" aria-label="Remove ${escapeHtml(p.name)}">✕</button>
+            </div>`).join('')}
+        </div>` : ''}
+        <button type="button" class="btn-primary" data-action="save-add-people" data-id="${escapeHtml(col.id)}" style="margin-top:14px;" ${d.people.length ? '' : 'disabled'}>
+          ✓ ${t(lang, 'save')} (${d.people.length})
+        </button>
+        <button type="button" class="btn-secondary" data-action="close-add-people" style="margin-top:10px;">${t(lang, 'cancel')}</button>
+      </div>
+    </div>
+  `;
+}
 
 export function escapeHtml(str) {
   return String(str ?? '')
@@ -261,7 +343,7 @@ function renderLangPickScreen() {
       <div class="lang-hero">
         <div class="logo-tile">💰</div>
         <div style="font-size:25px; font-weight:800; line-height:1.25;">Choose language</div>
-        <div style="font-size:21px; font-weight:700; color:#4A4138;">भाषा चुनें</div>
+        <div style="font-size:21px; font-weight:700; color:var(--ink-soft);">भाषा चुनें</div>
         <div style="font-size:18px; font-weight:600; color:var(--ink-muted);">Bhasha chunein</div>
       </div>
 
@@ -328,7 +410,7 @@ function renderCollectionCard(col, lang) {
 
       <div class="collection-card-bottom">
         <div style="font-size:23px; font-weight:800; color:var(--ink);">
-          ${collectedStr} <span style="font-size:15px; color:#9A9085; font-weight:600;">/ ${totalStr}</span>
+          ${collectedStr} <span style="font-size:15px; color:var(--ink-muted); font-weight:600;">/ ${totalStr}</span>
         </div>
         <div style="font-size:15px; font-weight:700; color:var(--green);">
           ${tally.paidCount}/${tally.totalCount} ✓
@@ -605,7 +687,7 @@ function renderCreateScreen() {
       </form>
 
       <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="font-size:16px; font-weight:800; color:#5B5249;">${t(lang, 'addedPeople')}</div>
+        <div style="font-size:16px; font-weight:800; color:var(--ink-soft);">${t(lang, 'addedPeople')}</div>
         <div style="font-size:15px; font-weight:800; color:var(--green); background:var(--green-tint); padding:4px 12px; border-radius:999px;">
           ${w.people.length}
         </div>
@@ -639,13 +721,13 @@ function renderCreateScreen() {
       <label class="deadline-card" for="deadline-input">
         <span style="font-size:22px;">📅</span>
         <div style="flex:1; min-width:0;">
-          <div style="font-size:13px; color:#9A7B3A; font-weight:600;">${t(lang, 'deadlineOptional')}</div>
+          <div style="font-size:13px; color:var(--pending-text); font-weight:600;">${t(lang, 'deadlineOptional')}</div>
           <input
             id="deadline-input"
             type="text"
             value="${escapeHtml(w.deadline)}"
             placeholder="e.g. 25 October / Diwali"
-            style="border:none; background:transparent; font-size:17px; font-weight:800; color:#A06A1E; width:100%; outline:none; padding:0;"
+            style="border:none; background:transparent; font-size:17px; font-weight:800; color:var(--pending-text); width:100%; outline:none; padding:0;"
           />
         </div>
       </label>
@@ -803,7 +885,7 @@ function renderDetailScreen(collectionId) {
           <div class="progress-ring-inner">
             <div style="font-size:14px; color:var(--ink-muted); font-weight:700;">${t(lang, 'collected')}</div>
             <div style="font-size:34px; font-weight:800; color:var(--green); letter-spacing:-1px; line-height:1.1;">${collectedStr}</div>
-            <div style="font-size:15px; color:#9A9085; font-weight:600;">${t(lang, 'ofAmount', { amount: totalStr })}</div>
+            <div style="font-size:15px; color:var(--ink-muted); font-weight:600;">${t(lang, 'ofAmount', { amount: totalStr })}</div>
           </div>
         </div>
 
@@ -885,6 +967,18 @@ function renderDetailScreen(collectionId) {
           })
           .join('')}
       </section>
+
+      <div style="display:flex; gap:10px; margin-top:4px;">
+        <button type="button" class="btn-secondary" data-action="open-add-people" style="flex:1; min-height:52px;">
+          <span>➕</span><span>${t(lang, 'addPeople')}</span>
+        </button>
+        <button type="button" class="btn-secondary" data-action="ask-delete-collection" data-id="${escapeHtml(col.id)}" style="flex:1; min-height:52px; color:var(--danger);">
+          <span>🗑️</span><span>${t(lang, 'deleteCollection')}</span>
+        </button>
+      </div>
+
+      ${renderAddPeopleSheet(col, lang)}
+      ${renderConfirmSheet(lang)}
 
       <div class="bottom-bar">
         <button
@@ -1038,8 +1132,8 @@ function renderShareScreen(collectionId) {
       <div class="summary-link-card">
         <span style="font-size:22px;">🔗</span>
         <div style="flex:1; min-width:0;">
-          <div style="font-size:13px; color:#5577BB; font-weight:700;">${t(lang, 'liveTally')}</div>
-          <div style="font-size:15px; font-weight:800; color:#3D5FA8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          <div style="font-size:13px; color:var(--link-text-soft); font-weight:700;">${t(lang, 'liveTally')}</div>
+          <div style="font-size:15px; font-weight:800; color:var(--link-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
             ${escapeHtml(APP_LINK.replace(/^https?:\/\//, ''))}
           </div>
         </div>
@@ -1078,7 +1172,7 @@ function renderShareScreen(collectionId) {
           </button>
         `
         }
-        <div style="font-size:14px; color:#9A8B79; text-align:center; font-weight:600;">
+        <div style="font-size:14px; color:var(--ink-muted); text-align:center; font-weight:600;">
           ${t(lang, 'pendingBatchCaption', { count: pendingList.length })}
         </div>
       </div>
@@ -1199,8 +1293,26 @@ function renderSettingsScreen() {
         }
       </section>
 
+      <section style="background:var(--card-white); border:1px solid var(--card-border); border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:16px; font-weight:800; color:var(--ink);">🎨 ${t(lang, 'theme')}</div>
+        <div class="lang-toggle" role="group" aria-label="${t(lang, 'theme')}" style="width:100%; justify-content:stretch;">
+          ${['light', 'dark', 'system'].map((th) => `
+            <button type="button" class="lang-seg ${(s.theme || 'system') === th ? 'active' : ''}" data-action="set-theme" data-theme="${th}" style="flex:1; min-height:44px; font-size:15px;">
+              ${th === 'light' ? '☀️ ' + t(lang, 'themeLight') : th === 'dark' ? '🌙 ' + t(lang, 'themeDark') : t(lang, 'themeSystem')}
+            </button>`).join('')}
+        </div>
+      </section>
+
+      <section style="background:var(--card-white); border:1px solid var(--card-border); border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:16px; font-weight:800; color:var(--ink);">🗑️ ${t(lang, 'dangerZone')}</div>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); font-weight:600; line-height:1.45;">${t(lang, 'wipeHint')}</p>
+        <button type="button" class="btn-secondary" data-action="ask-wipe-all" style="color:var(--danger);">
+          <span>🗑️</span><span>${t(lang, 'wipeAll')}</span>
+        </button>
+      </section>
+
       <section style="background:var(--card-white); border:1px solid var(--card-border); border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:6px;">
-        <div style="font-size:16px; font-weight:800; color:var(--ink);">🔒 ${t(lang, 'aboutTitle')} · v1.0</div>
+        <div style="font-size:16px; font-weight:800; color:var(--ink);">🔒 ${t(lang, 'aboutTitle')} · v1.1</div>
         <p style="margin:0; font-size:14px; color:var(--ink-soft); font-weight:600; line-height:1.45;">
           ${t(lang, 'privacyNote')}
         </p>
@@ -1208,6 +1320,7 @@ function renderSettingsScreen() {
       </section>
 
       ${renderProModal(lang)}
+      ${renderConfirmSheet(lang)}
     </main>
   `;
 }
@@ -1427,6 +1540,140 @@ function bindEvents(root) {
       appContext.state = updateSettings(appContext.state, { customNudgeTemplate: e.target.value });
     });
   }
+
+  // Theme
+  root.querySelectorAll('[data-action="set-theme"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      appContext.state = updateSettings(appContext.state, { theme: btn.getAttribute('data-theme') });
+      applyTheme();
+      renderApp();
+    });
+  });
+
+  // Delete collection / wipe all (confirm sheet)
+  root.querySelectorAll('[data-action="ask-delete-collection"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const col = (appContext.state.collections || []).find((c) => c.id === btn.getAttribute('data-id'));
+      if (!col) return;
+      appContext.confirm = { kind: 'collection', id: col.id, title: col.title, count: col.people.length };
+      renderApp();
+    });
+  });
+  root.querySelectorAll('[data-action="ask-wipe-all"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      appContext.confirm = { kind: 'wipe' };
+      renderApp();
+    });
+  });
+  root.querySelectorAll('[data-action="confirm-cancel"]').forEach((el) => {
+    el.addEventListener('click', () => {
+      appContext.confirm = null;
+      renderApp();
+    });
+  });
+  root.querySelectorAll('[data-action="confirm-ok"]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const c = appContext.confirm;
+      appContext.confirm = null;
+      if (!c) return;
+      const lang = getLang();
+      if (c.kind === 'collection') {
+        appContext.state = deleteCollection(appContext.state, c.id);
+        clearUndo();
+        navigate('#home');
+      } else if (c.kind === 'wipe') {
+        appContext.state = wipeAllData(appContext.state);
+        clearUndo();
+        appContext.settingsNotice = t(lang, 'wipeDone');
+        applyTheme();
+        navigate('#settings');
+      }
+      renderApp();
+    });
+  });
+
+  // Add people to an existing collection
+  root.querySelectorAll('[data-action="open-add-people"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      appContext.addDraft = { name: '', phone: '', people: [], message: '' };
+      appContext.addPeopleOpen = true;
+      renderApp();
+      const el = document.getElementById('add-name-input');
+      if (el) el.focus();
+    });
+  });
+  root.querySelectorAll('[data-action="close-add-people"]').forEach((el) => {
+    el.addEventListener('click', () => {
+      appContext.addPeopleOpen = false;
+      renderApp();
+    });
+  });
+  root.querySelectorAll('[data-action="remove-add-person"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.getAttribute('data-index'));
+      appContext.addDraft.people.splice(idx, 1);
+      renderApp();
+    });
+  });
+  const addForm = root.querySelector('#add-people-form');
+  if (addForm) {
+    const n = root.querySelector('#add-name-input');
+    const p = root.querySelector('#add-phone-input');
+    if (n) n.addEventListener('input', (e) => { appContext.addDraft.name = e.target.value; });
+    if (p) p.addEventListener('input', (e) => { appContext.addDraft.phone = e.target.value; });
+    addForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = appContext.addDraft.name.trim();
+      if (!name) return;
+      const { phone, rawPhone } = parsePhone(appContext.addDraft.phone);
+      appContext.addDraft.people.push({ name, phone, rawPhone, avatarColor: avatarColor(name) });
+      appContext.addDraft.name = '';
+      appContext.addDraft.phone = '';
+      renderApp();
+      const el = document.getElementById('add-name-input');
+      if (el) el.focus();
+    });
+  }
+  root.querySelectorAll('[data-action="add-people-contacts"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const lang = getLang();
+      if (typeof navigator !== 'undefined' && navigator.contacts && typeof navigator.contacts.select === 'function') {
+        try {
+          const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+          if (Array.isArray(picked)) {
+            for (const c of picked) {
+              const name = (Array.isArray(c.name) ? c.name[0] : c.name) || '';
+              const tel = (Array.isArray(c.tel) ? c.tel[0] : c.tel) || '';
+              if (name) {
+                const { phone, rawPhone } = parsePhone(tel);
+                appContext.addDraft.people.push({ name: String(name).trim(), phone, rawPhone, avatarColor: avatarColor(name) });
+              }
+            }
+            appContext.addDraft.message = '';
+            renderApp();
+          }
+        } catch {
+          /* cancelled */
+        }
+      } else {
+        appContext.addDraft.message = t(lang, 'contactsUnavailable');
+        renderApp();
+        const el = document.getElementById('add-name-input');
+        if (el) el.focus();
+      }
+    });
+  });
+  root.querySelectorAll('[data-action="save-add-people"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const people = appContext.addDraft.people;
+      if (!people.length) return;
+      appContext.state = addPeopleToCollection(appContext.state, id, people);
+      appContext.addPeopleOpen = false;
+      appContext.addDraft = { name: '', phone: '', people: [], message: '' };
+      renderApp();
+    });
+  });
 
   root.querySelectorAll('[data-action="open-settings"]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1881,6 +2128,10 @@ function bindEvents(root) {
 async function boot() {
   await initI18n();
   appContext.state = loadState();
+  applyTheme();
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
+  }
   appContext.route = parseHash(window.location.hash);
   appContext.ready = true;
 
