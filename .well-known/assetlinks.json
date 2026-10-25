@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sakredstudio.chanda",
+      "sha256_cert_fingerprints": [
+        "32:58:70:91:C4:9D:DA:5D:6D:26:AC:A6:3D:2C:74:FC:1B:11:5C:EE:F3:D0:55:28:F9:DF:30:D8:8C:74:E8:29",
+        "4D:59:39:FA:07:71:D6:4A:AA:BD:9B:62:DB:18:53:7D:D6:35:D4:0D:D2:55:36:39:08:F7:D8:09:7C:56:70:44"
+      ]
+    }
+  }
+]

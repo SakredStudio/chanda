@@ -44,7 +44,7 @@ node --test projects/chanda-collector/app/tests/*.test.mjs
   - Person rows with status indicators (`✓` green filled circle for paid; `○` saffron open ring + WhatsApp remind circle for pending).
   - Bottom sheet to mark `💵 Cash` or `📱 Online` (or revert to pending), triggering the `pop` animation and a 5-second Undo toast that restores exact previous state including timestamps.
 - **P4 — Share / Nudge Screen, "Next Pending" Flow, UPI QR + `lib/upi.js`:**
-  - WhatsApp message preview bubble (`#DCF8C6`) ending with the mandatory growth-loop footer `— sent with Chanda · https://sakredstudio.github.io/chanda` (`APP_LINK` in `lib/wa.js`).
+  - WhatsApp message preview bubble (`#DCF8C6`) ending with the mandatory growth-loop footer `— sent with Chanda · https://chanda.sakredstudio.ca` (`APP_LINK` in `lib/wa.js`).
   - Sequential **"Next pending person"** flow (queue strip + auto-advance on tap so the organizer nudges each pending person in turn).
   - `lib/upi.js` + vendored MIT `vendor/qrcode.js` (`vendor/LICENSE`): builds `upi://pay?pa=<vpa>&pn=<payee name>&am=<amount>&cu=INR&tn=<collection name>` and renders a scannable SVG QR code on device.
 - **P5 & P6 — PWA Offline Shell, Settings & QA:**
@@ -61,7 +61,7 @@ node --test projects/chanda-collector/app/tests/*.test.mjs
 
 ## Deploy (GitHub Pages)
 
-Live at https://sakredstudio.github.io/chanda. The public repo `SakredStudio/chanda` is a deploy mirror of this folder; the monorepo is the source of truth. From the sakred-os root, on master:
+Live at https://chanda.sakredstudio.ca. The public repo `SakredStudio/chanda` is a deploy mirror of this folder; the monorepo is the source of truth. From the sakred-os root, on master:
 
 ```powershell
 git subtree push --prefix=projects/chanda-collector/app https://github.com/SakredStudio/chanda.git main
