@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isPlayBillingAvailable, getProPrice, hasProPurchase, buyPro, PRO_SKU, PRO_PRICE_FALLBACK } from '../lib/billing.js';
+import { isPlayBillingAvailable, getProPrice, hasProPurchase, buyPro, PRO_SKU } from '../lib/billing.js';
+import * as billing from '../lib/billing.js';
 
 function fakeWindow({ purchases = [], showResult = 'ok' } = {}) {
   const completed = [];
@@ -21,7 +22,7 @@ function fakeWindow({ purchases = [], showResult = 'ok' } = {}) {
 test('billing: unavailable outside the Play TWA (no window / no bridge)', async () => {
   assert.equal(await isPlayBillingAvailable(null), false);
   assert.equal(await isPlayBillingAvailable({}), false);
-  assert.equal(await getProPrice({}), PRO_PRICE_FALLBACK);
+  assert.equal(await getProPrice({}), null);
   assert.equal(await hasProPurchase({}), false);
   await assert.rejects(buyPro({}), (e) => e.code === 'unavailable');
 });
@@ -38,4 +39,13 @@ test('billing: price from Play, restore from listPurchases, buy acknowledges wit
 test('billing: user cancel surfaces as code "cancelled"', async () => {
   const { win } = fakeWindow({ showResult: 'abort' });
   await assert.rejects(buyPro(win), (e) => e.code === 'cancelled');
+});
+
+test('billing: no made-up price when Play returns nothing or fails', async () => {
+  const empty = { getDigitalGoodsService: async () => ({ getDetails: async () => [], listPurchases: async () => [] }), PaymentRequest: class {} };
+  assert.equal(await getProPrice(empty), null);
+  assert.equal(billing.lastPriceLookup, PRO_SKU + ': not returned');
+  const failing = { getDigitalGoodsService: async () => ({ getDetails: async () => { const e = new Error('clientAppUnavailable'); e.name = 'OperationError'; throw e; }, listPurchases: async () => [] }), PaymentRequest: class {} };
+  assert.equal(await getProPrice(failing), null);
+  assert.equal(billing.lastPriceLookup, PRO_SKU + ': OperationError clientAppUnavailable');
 });
